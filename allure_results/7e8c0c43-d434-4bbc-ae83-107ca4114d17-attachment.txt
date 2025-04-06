@@ -1,0 +1,3 @@
+
+Отправляемые данные без first_name: {'login': 'kaqiaobrxy', 'password': 'rbjiqotaok'}
+Ответ от сервера: 201 {'ok': True}

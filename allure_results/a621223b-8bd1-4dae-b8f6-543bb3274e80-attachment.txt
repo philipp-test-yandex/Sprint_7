@@ -1,0 +1,2 @@
+Отправляемые данные: {'login': 'mlehzfyluv', 'password': 'nhxhmrlzxhinvalid', 'firstName': 'vkqnvmhwdzinvalid'}
+Ответ от сервера: 409 {'code': 409, 'message': 'Этот логин уже используется. Попробуйте другой.'}

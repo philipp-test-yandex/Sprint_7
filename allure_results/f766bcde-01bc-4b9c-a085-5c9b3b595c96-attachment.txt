@@ -1,0 +1,2 @@
+Отправляемые данные: {'login': 'sgygmgeios', 'password': 'wkzopgoust_invalid'}
+Ответ от сервера: 404 {'code': 404, 'message': 'Учетная запись не найдена'}
