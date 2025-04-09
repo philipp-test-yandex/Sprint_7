@@ -1,2 +1,0 @@
-Отправляемые данные: {'login': 'sggsanpauy', 'password': 'bvuhykgvpw'}
-Ответ от сервера: 200 {'id': 498427}

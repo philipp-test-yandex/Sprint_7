@@ -1,2 +1,0 @@
-Отправляемые данные: {'login': 'mypqkkreup', 'password': 'drgxosvygm'}
-Ответ от сервера: 404 {'code': 404, 'message': 'Учетная запись не найдена'}

@@ -1,3 +1,0 @@
-
-Отправляемые данные курьера: {'login': 'vumbtpkorg', 'password': 'bdsmzmgxdp', 'firstName': 'desbtbjwen'}
-Ответ от сервера: 201 {'ok': True}

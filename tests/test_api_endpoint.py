@@ -1,100 +1,78 @@
 import requests
 import pytest
 import allure
-from helpers.method_generate_new_unic_courier import register_new_courier_and_return_login_password, generate_login_password_firstname
+from conftest import courier_data, registered_courier_and_after_delete_courier
+from helpers.constants import COURIER_URL, LOGIN_URL, ORDER_URL, ERROR_LOGIN_ALREADY_EXISTS, ERROR_NOT_ENOUGH_DATA, ERROR_ACCOUNT_NOT_FOUND, OK_RESPONSE
 
 class TestCreateCourier:
     @allure.title("Создание курьера при заполненных всех полях")
-    def test_create_new_courier_all_fields_are_filled(self):
-        with allure.step("Генерация данных для курьера (логин, пароль, имя)"):
-            courier_data = generate_login_password_firstname()
-
+    def test_create_new_courier_all_fields_are_filled(self, courier_data):
         with allure.step("Отправка запроса на создание курьера"):
-            response = requests.post('https://qa-scooter.praktikum-services.ru/api/v1/courier', json=courier_data)
-
-            print("\nОтправляемые данные курьера:", courier_data)
-            print("Ответ от сервера:", response.status_code, response.json())
+            response = requests.post(COURIER_URL, json=courier_data)
 
         with allure.step("Проверка ответа"):
             assert response.status_code == 201
-            assert response.json() == {"ok": True}
+            assert response.json() == OK_RESPONSE
+
 
     @allure.title("Попытка повторного создания одинакового курьера")
-    def test_create_two_same_courier(self):
-        with allure.step("Создание первого курьера"):
-            courier_data = register_new_courier_and_return_login_password()
-            login, password, first_name = courier_data
-
+    def test_create_two_same_courier(self, registered_courier_and_after_delete_courier):
         with allure.step("Попытка повторной регистрации с теми же данными"):
             payload = {
-                "login": login,
-                "password": password,
-                "firstName": first_name
+                "login": registered_courier_and_after_delete_courier["login"],
+                "password": registered_courier_and_after_delete_courier["password"],
+                "firstName": registered_courier_and_after_delete_courier["firstName"]
             }
-
-            response = requests.post('https://qa-scooter.praktikum-services.ru/api/v1/courier', json=payload)
-            print("\nПопытка создания повторного курьера с данными:", payload)
-            print("Ответ от сервера на повторное создание:", response.status_code, response.json())
+            response = requests.post(COURIER_URL, json=payload)
 
         with allure.step("Проверка ошибки"):
             assert response.status_code == 409
-            assert response.json()["message"] == "Этот логин уже используется. Попробуйте другой."
+            assert response.json()["message"] == ERROR_LOGIN_ALREADY_EXISTS
+
+
 
     @allure.title("Создание курьера без поля firstName")
-    def test_create_new_courier_first_name_is_empty(self):
+    def test_create_new_courier_first_name_is_empty(self, courier_data):
         with allure.step("Генерация данных без firstName"):
-            courier_data = generate_login_password_firstname()
             courier_data.pop("firstName")
 
         with allure.step("Отправка запроса"):
-            response = requests.post('https://qa-scooter.praktikum-services.ru/api/v1/courier', json=courier_data)
-            print("\nОтправляемые данные без first_name:", courier_data)
-            print("Ответ от сервера:", response.status_code, response.json())
+            response = requests.post(COURIER_URL, json=courier_data)
 
         with allure.step("Проверка ответа"):
             assert response.status_code == 201
-            assert response.json() == {"ok": True}
+            assert response.json() == OK_RESPONSE
+
 
     @allure.title("Создание курьера с уже существующим логином")
-    def test_create_new_courier_which_login_have_in_system(self):
-        with allure.step("Регистрация первого курьера"):
-            courier_data = register_new_courier_and_return_login_password()
-            login, password, first_name = courier_data
-
+    def test_create_new_courier_which_login_have_in_system(self, registered_courier_and_after_delete_courier):
         with allure.step("Попытка регистрации с тем же логином и другими данными"):
             duplicate_payload = {
-                "login": login,
-                "password": password + "invalid",
-                "firstName": first_name + "invalid"
+                "login": registered_courier_and_after_delete_courier["login"],
+                "password": registered_courier_and_after_delete_courier["password"] + "invalid",
+                "firstName": registered_courier_and_after_delete_courier["firstName"] + "invalid"
             }
 
-            response = requests.post('https://qa-scooter.praktikum-services.ru/api/v1/courier', json=duplicate_payload)
-            print("Отправляемые данные:", duplicate_payload)
-            print("Ответ от сервера:", response.status_code, response.json())
+            response = requests.post(COURIER_URL, json=duplicate_payload)
 
         with allure.step("Проверка ошибки"):
             assert response.status_code == 409
-            assert response.json()["message"] == "Этот логин уже используется. Попробуйте другой."
+            assert response.json()["message"] == ERROR_LOGIN_ALREADY_EXISTS
 
 class TestLoginCourier:
     @allure.title("Авторизация курьера с получением ID")
-    def test_courier_can_login_and_get_id(self):
-        with allure.step("Регистрация нового курьера"):
-            courier_data = register_new_courier_and_return_login_password()
-            login, password, _ = courier_data
-
+    def test_courier_can_login_and_get_id(self, registered_courier_and_after_delete_courier):
         with allure.step("Отправка запроса на авторизацию"):
             payload = {
-                "login": login,
-                "password": password
+                "login": registered_courier_and_after_delete_courier["login"],
+                "password": registered_courier_and_after_delete_courier["password"]
             }
-            response = requests.post('https://qa-scooter.praktikum-services.ru/api/v1/courier/login', json=payload)
-            print("Отправляемые данные:", payload)
-            print("Ответ от сервера:", response.status_code, response.json())
+            response = requests.post(LOGIN_URL, json=payload)
 
         with allure.step("Проверка авторизации"):
             assert response.status_code == 200
             assert "id" in response.json()
+
 
     @allure.title("Ошибка авторизации без логина")
     def test_login_fails_without_login_field(self):
@@ -102,78 +80,65 @@ class TestLoginCourier:
             payload = {"password": "password"}
 
         with allure.step("Отправка запроса"):
-            response = requests.post('https://qa-scooter.praktikum-services.ru/api/v1/courier/login', json=payload)
-            print("Отправляемые данные:", payload)
-            print("Ответ от сервера:", response.status_code, response.json())
+            response = requests.post(LOGIN_URL, json=payload)
 
         with allure.step("Проверка ошибки"):
             assert response.status_code == 400
-            assert response.json()["message"] == "Недостаточно данных для входа"
+            assert response.json()["message"] == ERROR_NOT_ENOUGH_DATA
 
     @allure.title("Ошибка авторизации без пароля")
-    def test_login_fails_without_password_field(self):
-        with allure.step("Регистрация курьера"):
-            courier_data = register_new_courier_and_return_login_password()
-            login, _, _ = courier_data
-
+    def test_login_fails_without_password_field(self, registered_courier_and_after_delete_courier):
         with allure.step("Формирование данных без пароля"):
+            login = registered_courier_and_after_delete_courier["login"]
             payload = {"login": login}
 
         with allure.step("Отправка запроса"):
-            response = requests.post('https://qa-scooter.praktikum-services.ru/api/v1/courier/login', json=payload)
-            print("Отправляемые данные:", payload)
-            print("Ответ от сервера:", response.status_code, response.json())
+            response = requests.post(LOGIN_URL, json=payload)
 
         with allure.step("Проверка ошибки"):
             assert response.status_code == 400
-            assert response.json()["message"] == "Недостаточно данных для входа"
+            assert response.json()["message"] == ERROR_NOT_ENOUGH_DATA
+
 
     @allure.title("Ошибка авторизации с неверным логином")
-    def test_login_fails_with_invalid_login(self):
-        with allure.step("Регистрация курьера"):
-            courier_data = register_new_courier_and_return_login_password()
-            login, password, _ = courier_data
-
+    def test_login_fails_with_invalid_login(self, registered_courier_and_after_delete_courier):
         with allure.step("Формирование данных с неверным логином"):
+            login = registered_courier_and_after_delete_courier["login"]
+            password = registered_courier_and_after_delete_courier["password"]
+
             payload = {
                 "login": login + '_invalid',
                 "password": password
             }
 
-        with allure.step("Отправка запроса"):
-            response = requests.post('https://qa-scooter.praktikum-services.ru/api/v1/courier/login', json=payload)
-            print("Ответ от сервера:", response.status_code, response.json())
-            print("Отправляемые данные:", payload)
+        with allure.step("Отправка запроса на авторизацию пользователя"):
+            response = requests.post(LOGIN_URL, json=payload)
 
         with allure.step("Проверка ошибки"):
-            assert response.json()["message"] == "Учетная запись не найдена"
+            assert response.json()["message"] == ERROR_ACCOUNT_NOT_FOUND
             assert response.status_code == 404
 
     @allure.title("Ошибка авторизации с неверным паролем")
-    def test_login_fails_with_invalid_password(self):
-        with allure.step("Регистрация курьера"):
-            courier_data = register_new_courier_and_return_login_password()
-            login, password, _ = courier_data
-
+    def test_login_fails_with_invalid_password(self, registered_courier_and_after_delete_courier):
         with allure.step("Формирование данных с неверным паролем"):
+            login = registered_courier_and_after_delete_courier["login"]
+            password = registered_courier_and_after_delete_courier["password"]
+
             payload = {
                 "login": login,
                 "password": password + '_invalid'
             }
 
         with allure.step("Отправка запроса"):
-            response = requests.post('https://qa-scooter.praktikum-services.ru/api/v1/courier/login', json=payload)
-            print("Отправляемые данные:", payload)
-            print("Ответ от сервера:", response.status_code, response.json())
+            response = requests.post(LOGIN_URL, json=payload)
 
         with allure.step("Проверка ошибки"):
             assert response.status_code == 404
-            assert response.json()["message"] == "Учетная запись не найдена"
+            assert response.json()["message"] == ERROR_ACCOUNT_NOT_FOUND
 
     @allure.title("Ошибка авторизации несуществующего пользователя")
-    def test_login_fails_with_nonexistent_user(self):
+    def test_login_fails_with_nonexistent_user(self, courier_data):
         with allure.step("Генерация данных для несуществующего пользователя"):
-            courier_data = generate_login_password_firstname()
             login = courier_data["login"]
             password = courier_data["password"]
 
@@ -183,13 +148,12 @@ class TestLoginCourier:
             }
 
         with allure.step("Отправка запроса"):
-            response = requests.post('https://qa-scooter.praktikum-services.ru/api/v1/courier/login', json=payload)
-            print("Отправляемые данные:", payload)
-            print("Ответ от сервера:", response.status_code, response.json())
+            response = requests.post(LOGIN_URL, json=payload)
 
         with allure.step("Проверка ошибки"):
+
             assert response.status_code == 404
-            assert response.json()["message"] == "Учетная запись не найдена"
+            assert response.json()["message"] == ERROR_ACCOUNT_NOT_FOUND
 
 
 class TestCreateOrder:
@@ -210,10 +174,7 @@ class TestCreateOrder:
             }
 
         with allure.step("Отправка запроса на создание заказа"):
-            response = requests.post('https://qa-scooter.praktikum-services.ru/api/v1/orders', json=payload)
-            print(f"\nСоздание заказа с цветом: {color}")
-            print("Статус:", response.status_code)
-            print("Ответ:", response.json())
+            response = requests.post(ORDER_URL, json=payload)
 
         with allure.step("Проверка успешного ответа и наличия track"):
             assert response.status_code == 201
@@ -223,7 +184,7 @@ class TestListOfOrder:
     @allure.title("Получение списка заказов")
     def test_order_list_is_returned(self):
         with allure.step("Отправка запроса на /orders"):
-            response = requests.get('https://qa-scooter.praktikum-services.ru/api/v1/orders')
+            response = requests.get(ORDER_URL)
 
         with allure.step("Проверка ответа и наличия orders в списке"):
             assert response.status_code == 200
