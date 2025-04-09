@@ -1,0 +1,4 @@
+https://qa-scooter.praktikum-services.ru/api/v1/courier/499205
+
+Удаление курьера: /api/v1/courier/499205
+Статус код удаления: 200
